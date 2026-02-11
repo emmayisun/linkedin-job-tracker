@@ -1,0 +1,76 @@
+name: LinkedIn Job Tracker
+
+on:
+  schedule:
+    # Run every hour
+    - cron: '0 * * * *'
+  workflow_dispatch:
+    # Allow manual trigger
+
+permissions:
+  contents: write
+
+jobs:
+  scrape-and-notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          playwright install chromium
+          playwright install-deps chromium
+
+      - name: Run scraper
+        env:
+          LI_AT_COOKIE: ${{ secrets.LI_AT_COOKIE }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python scraper.py
+
+      - name: Commit updated CSV
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add jobs.csv
+          git diff --cached --quiet || git commit -m "Update jobs.csv — $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push
+
+      - name: Check for new jobs
+        id: check
+        run: |
+          if [ -f has_new_jobs.txt ] && [ "$(cat has_new_jobs.txt)" = "true" ]; then
+            echo "has_new=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_new=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send email notification
+        if: steps.check.outputs.has_new == 'true'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.EMAIL_ADDRESS }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "LinkedIn PM Jobs Alert — ${{ github.run_id }}"
+          to: ${{ secrets.EMAIL_ADDRESS }}
+          from: LinkedIn Job Tracker <${{ secrets.EMAIL_ADDRESS }}>
+          html_body: file://email_body.html
+          content_type: text/html
+
+      - name: Summary
+        run: |
+          if [ "${{ steps.check.outputs.has_new }}" = "true" ]; then
+            echo "✅ New jobs found and email sent!"
+          else
+            echo "ℹ️ No new jobs in the past hour."
+          fi
