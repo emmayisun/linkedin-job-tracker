@@ -1,2 +1,2 @@
 playwright
-google-generativeai
+google-genai

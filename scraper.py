@@ -13,7 +13,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-import google.generativeai as genai
+from google import genai
 from playwright.sync_api import sync_playwright
 
 # --- Configuration ---
@@ -231,8 +231,7 @@ def scrape_jobs(li_at_cookie: str) -> list[dict]:
 
 def generate_comments(jobs: list[dict], api_key: str) -> list[dict]:
     """Use Gemini 2.5 Flash to generate enterprise AI fit comments."""
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-2.5-flash-preview-05-20")
+    client = genai.Client(api_key=api_key)
 
     for job in jobs:
         prompt = GEMINI_PROMPT_TEMPLATE.format(
@@ -241,7 +240,10 @@ def generate_comments(jobs: list[dict], api_key: str) -> list[dict]:
             description=job["description"],
         )
         try:
-            response = model.generate_content(prompt)
+            response = client.models.generate_content(
+                model="gemini-2.5-flash-preview-05-20",
+                contents=prompt,
+            )
             job["comment"] = response.text.strip()
         except Exception as e:
             print(f"  Gemini error for {job['job_title']}: {e}")
