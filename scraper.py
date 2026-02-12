@@ -17,17 +17,33 @@ from google import genai
 from playwright.sync_api import sync_playwright
 
 # --- Configuration ---
-LINKEDIN_SEARCH_URL = (
-    "https://www.linkedin.com/jobs/search/"
-    "?alertAction=viewjobs"
-    "&distance=25"
-    "&f_TPR=r3600"
-    "&geoId=90000084"
-    "&keywords=product%20manager"
-    "&origin=JOB_SEARCH_PAGE_JOB_FILTER"
-    "&sortBy=DD"
-    "&spellCorrectionEnabled=true"
-)
+def get_search_url() -> str:
+    """Build LinkedIn search URL with appropriate time filter.
+
+    PST 6am (UTC 14:00) run uses 9-hour lookback (r32400) to catch overnight jobs.
+    All other runs use 1-hour lookback (r3600).
+    """
+    run_hour_utc = os.environ.get("RUN_HOUR_UTC", "")
+    if run_hour_utc == "14":
+        # Morning catch-up: 9 hours = 32400 seconds
+        time_filter = "r32400"
+        print("Morning catch-up mode: looking back 9 hours")
+    else:
+        # Normal hourly run: 1 hour = 3600 seconds
+        time_filter = "r3600"
+        print("Hourly mode: looking back 1 hour")
+
+    return (
+        "https://www.linkedin.com/jobs/search/"
+        "?alertAction=viewjobs"
+        "&distance=25"
+        f"&f_TPR={time_filter}"
+        "&geoId=90000084"
+        "&keywords=product%20manager"
+        "&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        "&sortBy=DD"
+        "&spellCorrectionEnabled=true"
+    )
 
 CSV_FILE = Path(__file__).parent / "jobs.csv"
 EMAIL_HTML_FILE = Path(__file__).parent / "email_body.html"
@@ -172,8 +188,9 @@ def scrape_jobs(li_at_cookie: str) -> list[dict]:
         )
 
         page = context.new_page()
+        search_url = get_search_url()
         print(f"Navigating to LinkedIn job search...")
-        page.goto(LINKEDIN_SEARCH_URL, wait_until="domcontentloaded")
+        page.goto(search_url, wait_until="domcontentloaded")
         page.wait_for_timeout(5000)  # Wait for JS rendering
 
         # Check if we're logged in by looking for job cards
