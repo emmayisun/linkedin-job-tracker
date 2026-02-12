@@ -245,7 +245,7 @@ def generate_comments(jobs: list[dict], api_key: str) -> list[dict]:
         )
         try:
             response = client.models.generate_content(
-                model="gemini-2.5-flash-preview-05-20",
+                model="gemini-2.5-flash",
                 contents=prompt,
             )
             job["comment"] = response.text.strip()
