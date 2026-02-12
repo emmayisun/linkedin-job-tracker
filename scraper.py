@@ -385,11 +385,11 @@ def main():
     print(f"After deduplication: {len(new_jobs)} new jobs")
 
     if not new_jobs:
-        print("No new jobs found. Generating empty email.")
+        print("No new jobs found this run.")
         email_html = generate_email_html([])
         EMAIL_HTML_FILE.write_text(email_html, encoding="utf-8")
-        # Write flag for workflow
-        Path("has_new_jobs.txt").write_text("false")
+        Path(Path(__file__).parent / "has_new_jobs.txt").write_text("false")
+        print("Done — nothing to report.")
         return
 
     # Generate Gemini comments
@@ -407,7 +407,7 @@ def main():
     print(f"Email HTML written to {EMAIL_HTML_FILE}")
 
     # Write flag for workflow
-    Path("has_new_jobs.txt").write_text("true")
+    Path(Path(__file__).parent / "has_new_jobs.txt").write_text("true")
 
     # Summary
     print("\n--- Summary ---")
