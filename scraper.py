@@ -44,22 +44,58 @@ CSV_HEADERS = [
     "job_url",
 ]
 
-GEMINI_PROMPT_TEMPLATE = """You are evaluating a job posting for someone who wants to do enterprise AI product management.
+CANDIDATE_RESUME = """
+CANDIDATE: Yi "Emma" Sun | San Francisco, CA
 
+WORK EXPERIENCE:
+- Commure (Enterprise AI, Series D Unicorn) — Product Manager, AI-Powered Enterprise Platforms (Oct 2023–Apr 2024)
+  * Fine-tuned LLMs on 3 years of historical claims data to auto-generate CPT/ICD codes with medical necessity evidence, human-in-the-loop review workflow. Scaled to 150+ healthcare orgs, 20% revenue increase, 25% reduction in denials.
+  * ML-driven customer health scoring, closed $2M revenue gaps, reduced churn 50%.
+- JPMorgan Securities — PM & AI Strategy, Research Portal (Sep 2021–Sep 2023)
+  * Built end-to-end audio-to-signal AI pipeline, improved LLM fine-tuning precision 30%, drove $5M revenue increase.
+  * Led data strategy for trade-recommendation engine, increased trading volume 30% and profit 45%.
+- Société Générale — PM, Trading Platform & Algorithms (Feb 2019–Jul 2021)
+  * Spearheaded Single-Dealer Platform, 300% active user increase, 170% trading flow growth, 120% profitability uplift.
+
+AI PRODUCT EXPERIENCE:
+- ChatGeneT (May–Nov 2025): AI "Patient Simulator" agent deployed across 30+ hospitals. Fine-tuned model: 0.31% hallucination rate, 0.87 anthropomorphism score. CSAT 4.5/5, served 500+ junior doctors.
+- Decoding the Beige Book (ACM ICAIF '25): End-to-end "text-to-signal" LLM pipeline, multi-model approach (GPT/Claude/Gemini/FinBERT/Mistral), peak F1 score 0.89 in recession nowcasting.
+
+EDUCATION:
+- Georgia Tech, MS in Computer Science, AI concentration (GPA 4.0) — Sep 2024–Dec 2025
+- Columbia University, MA in Mathematics of Finance (GPA 3.84) — Sep 2017–Dec 2018
+
+SKILLS:
+- AI/ML: PyTorch, LangChain, LangGraph, LLM fine-tuning, prompt engineering, LLM evaluation
+- Product: Figma, user research, PRDs, prioritization/roadmapping, A/B Testing, Agile/Scrum, Jira/Linear
+- Analytics: Python, SQL, Looker, Tableau, Power BI, Retool
+"""
+
+GEMINI_PROMPT_TEMPLATE = """You are a career advisor matching a candidate's resume against a job posting.
+
+=== CANDIDATE RESUME ===
+{resume}
+
+=== JOB POSTING ===
 Job Title: {title}
 Company: {company}
 Job Description (excerpt):
 {description}
 
-Briefly evaluate:
-1. What does this company do and how reputable is it?
-2. Does this role involve enterprise AI product management?
-3. Rate the fit as **High**, **Medium**, or **Low** for someone targeting enterprise AI PM roles.
+=== TASK ===
+Evaluate how well this candidate matches this specific role. Consider:
+1. Does the candidate's experience level meet the job requirements?
+2. How relevant is the candidate's AI/enterprise product experience to this role?
+3. What are the candidate's strongest matching qualifications?
+4. What gaps or weaknesses might the candidate have for this role?
 
-Start your response with the rating on its own line, like:
-Rating: High
+Start your response with the match rating on its own line:
+Rating: High / Medium / Low
 
-Then provide a 2-3 sentence explanation. Keep your total response under 80 words."""
+Then provide a concise analysis (under 100 words) covering:
+- Why this is a good or bad match
+- Key strengths the candidate brings
+- Any notable gaps or concerns"""
 
 
 def load_existing_job_ids() -> set:
@@ -239,6 +275,7 @@ def generate_comments(jobs: list[dict], api_key: str) -> list[dict]:
 
     for job in jobs:
         prompt = GEMINI_PROMPT_TEMPLATE.format(
+            resume=CANDIDATE_RESUME,
             title=job["job_title"],
             company=job["company"],
             description=job["description"],
@@ -346,7 +383,7 @@ def generate_email_html(jobs: list[dict]) -> str:
             <th style="padding: 12px; border: 1px solid #ddd; text-align: left; width: 12%;">Company</th>
             <th style="padding: 12px; border: 1px solid #ddd; text-align: center; width: 10%;">Experience</th>
             <th style="padding: 12px; border: 1px solid #ddd; text-align: center; width: 13%;">Salary</th>
-            <th style="padding: 12px; border: 1px solid #ddd; text-align: left; width: 45%;">Comment (Enterprise AI Fit)</th>
+            <th style="padding: 12px; border: 1px solid #ddd; text-align: left; width: 45%;">Resume Match Analysis</th>
         </tr>
     </thead>
     <tbody>
