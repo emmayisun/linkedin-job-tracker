@@ -161,10 +161,14 @@ def scrape_jobs(li_at_cookie: str) -> list[dict]:
             company_el = card.query_selector(".artdeco-entity-lockup__subtitle")
             meta_items = card.query_selector_all("li")
 
-            title = title_el.inner_text().strip() if title_el else "Unknown"
-            # Clean up duplicated title text (LinkedIn renders it twice)
-            if len(title) > 40 and title[: len(title) // 2] == title[len(title) // 2 :]:
-                title = title[: len(title) // 2]
+            # Extract title from the <strong> tag inside the link to avoid
+            # duplicated text (LinkedIn renders title in <strong> + a hidden
+            # <span class="visually-hidden"> with "with verification" suffix)
+            if title_el:
+                strong_el = title_el.query_selector("strong")
+                title = strong_el.inner_text().strip() if strong_el else title_el.inner_text().strip()
+            else:
+                title = "Unknown"
 
             company = company_el.inner_text().strip() if company_el else "Unknown"
             card_meta = [li.inner_text().strip() for li in meta_items]
