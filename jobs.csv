@@ -364,3 +364,45 @@ This is a High match. The candidate possesses excellent AI/ML product management
 2026-02-14 14:23 UTC,4373206934,Product Manager (Remote),Jobgether,"California, United States (Remote)",5+ years,Not listed,"Rating: Low
 
 This is a low match due to critical domain-specific gaps. While the candidate boasts strong AI Product Management experience (5+ years) and impressive technical/analytical skills with some healthcare AI exposure, they lack the explicit Bachelor’s degree in Life Sciences and direct experience in NGS, molecular diagnostics, LDTs, or sequencing services, which are core requirements. The AI/enterprise experience is highly relevant to product *management* but not the *specific biopharma diagnostic domain*.",https://www.linkedin.com/jobs/view/4373206934/
+2026-02-14 15:34 UTC,4349735338,"Senior PR Manager, Product",CoreWeave,"Sunnyvale, CA",8-12 years,$135K/yr - $198K/yr,"Rating: Low
+
+Analysis: This candidate possesses strong AI/ML product management expertise (~5 years) with a deep technical understanding relevant to AI infrastructure. They excel in translating complex technical concepts into business outcomes. However, the role is for a *Senior Product PR Manager* requiring 8-12+ years in *PR/Communications*, media strategy, and reporter relationships—skills entirely absent from the candidate's resume. While their AI domain knowledge is a strong asset, the core functional experience for a PR role is missing.",https://www.linkedin.com/jobs/view/4349735338/
+2026-02-14 15:34 UTC,4332749222,"Sr. Product Manager, AWS Server Supply Chain",Amazon Web Services (AWS),"Cupertino, CA",5+ years,$133.2K/yr - $220.2K/yr,"Rating: Low
+
+The candidate is a strong AI Product Manager with an impressive track record and results-driven approach. However, this AWS role is highly specialized in physical hardware supply chain, PCB manufacturing, and semiconductor operations—a domain where the candidate lacks direct experience. Their extensive AI/ML product background, while valuable, doesn't align with the core responsibilities of managing infrastructure supply chains and supplier agreements for servers.",https://www.linkedin.com/jobs/view/4332749222/
+2026-02-14 15:34 UTC,4365602333,"Research & Development Manager, Industrial",Calumet,United States (Remote),5+ years,Not listed,"Rating: Low
+
+This is a very poor match. The candidate's extensive experience is in AI/software product management within the finance and healthcare sectors, which is entirely unrelated to the core requirements of an R&D Manager for industrial lubricants and greases. She lacks the foundational chemical engineering/chemistry background, 5+ years of lubricant formulation experience, and knowledge of specific industry standards (ASTM, OEM). While her project leadership and product development lifecycle experience are strong, they are not transferable to this highly specialized technical domain.",https://www.linkedin.com/jobs/view/4365602333/
+2026-02-14 15:34 UTC,4355347595,Technical Product Marketing Manager,FastSpring,United States (Remote),5+ years,$120K/yr - $135K/yr,"Rating: Medium-High
+
+This candidate is a strong technical product leader with exceptional AI/ML experience, quantitative skills, and a proven track record of driving significant business impact. While lacking direct product marketing titles, their strategic product and GTM experience, coupled with deep technical acumen, makes them a compelling fit for the ""developer who loves marketing"" aspect of this hybrid role. Key strengths include outstanding technical depth, quantifiable business results, and strategic product management. Gaps include limited explicit product marketing experience (external messaging) and specific HTML/CSS/JS skills for POCs are not listed.",https://www.linkedin.com/jobs/view/4355347595/
+2026-02-14 15:34 UTC,4343376798,Technical Product Manager - Risk,Sardine,United States (Remote),7+ years,$145,"Rating: Medium
+
+Yi has strong AI/ML product experience, excelling in LLM fine-tuning, building AI pipelines, and delivering quantifiable impact in finance and enterprise platforms. This is highly relevant to Sardine's tech stack and mission. However, she falls short on the required 7+ years of total PM experience (has ~5 years) and lacks explicit, dedicated experience (4+ years) in financial crime fraud detection systems, typologies, and risk management, which are core to this specific role.",https://www.linkedin.com/jobs/view/4343376798/
+2026-02-14 15:34 UTC,4338322247,Global Technical Product Manager - AXELIOS Sequencing System,Roche,"Santa Clara, CA",5+ years,"$109,300 - $203,100.00","Rating: High
+
+Analysis: Emma is an excellent match. Her extensive AI/ML and enterprise PM experience, particularly in healthcare with quantifiable impact, aligns perfectly with shaping precision medicine. She demonstrates strong technical leadership and ability to bridge R&D and customer success. A minor gap might be less direct experience in hands-on L2 technical troubleshooting/support and specific hardware/medical device integration, but her technical depth makes her highly adaptable.
+
+---
+**Detailed Evaluation:**
+
+1.  **Does the candidate's experience level meet the job requirements?**
+    Yes, absolutely. Emma brings over 5 years of senior-level Product Management experience across multiple demanding industries (AI/healthcare, finance). The job description calls for someone who ""defines the work scope and works autonomously,"" ""serves as a technical expert,"" and ""Leads the overall GCS project team."" Her track record of leading complex AI initiatives, achieving significant business outcomes, and holding an MS in Computer Science (AI concentration) demonstrates the required leadership, technical depth, and autonomy.
+
+2.  **How relevant is the candidate's AI/enterprise product experience to this role?**
+    Highly relevant.
+    *   **AI Experience:** The role is for a cutting-edge ""sequencing platform,"" which undoubtedly involves advanced data processing and potentially AI/ML for analysis in precision medicine. Emma's deep expertise in fine-tuning LLMs, building AI pipelines, prompt engineering, and ML-driven scoring is a significant asset. Her AI projects (ChatGeneT, Decoding the Beige Book) further showcase her advanced application of AI.
+    *   **Enterprise Product Experience:** Her background at Commure (Enterprise AI, Series D Unicorn) and JPMorgan demonstrates experience with robust, scalable enterprise-grade platforms, which is crucial for Roche's ""AXELIOS System"" that needs to be ""robust, scalable, and user-centric.""
+
+3.  **What are the candidate's strongest matching qualifications?**
+    *   **Deep AI/ML Expertise:** Hands-on experience with LLM fine-tuning, pipeline building, and evaluation, directly applicable to advanced medical data analysis.
+    *   **Healthcare Domain Experience:** Her role at Commure, involving CPT/ICD codes, medical necessity evidence, and scaling to healthcare organizations, is directly relevant to Roche's mission. The ChatGeneT project (AI ""Patient Simulator"" for hospitals) further reinforces this.
+    *   **Quantifiable Impact:** Every role showcases impressive, measurable results (revenue increase, churn reduction, trading volume/profit increase, user growth, accuracy rates).
+    *   **Technical Product Leadership:** Proven ability to lead product development from strategy to launch, influence design, and ensure technical readiness for complex platforms.
+    *   **""Strategic Bridge"" Capability:** Her profile perfectly aligns with the job's core need for a ""strategic bridge between R&D Innovation and Global Customer Success.""
+
+4.  **What gaps or weaknesses might the candidate have for this role?**
+    *   **Direct Troubleshooting/Support Experience:** While highly technical, Emma's resume emphasizes building, optimizing, and leading product strategy rather than direct, hands-on L2/L3 troubleshooting, system escalations, or providing ""expert-level HW/SW support during 'rush hour' periods"" as a primary function of her previous roles. The job description leans heavily into this GCS (Global Customer Support) aspect.
+    *   **Hardware/Medical Device Specifics:** Her healthcare experience is strong on the enterprise AI software/data side. The ""AXELIOS Sequencing System"" implies a sophisticated blend of hardware and software specific to a lab or medical device context. While her technical acumen is high, specific experience with the unique challenges of integrating and supporting physical medical devices or sequencing hardware isn't explicitly detailed.
+    *   **Training and Documentation:** The role mentions creating/revising training curriculum and service manuals. While a PM often contributes to these, direct experience leading these activities isn't highlighted.",https://www.linkedin.com/jobs/view/4338322247/
+2026-02-14 15:34 UTC,4323667251,"Sr. Product Manager, Onboarding & Safety",Twitch,"San Francisco, CA",8+ years,$136.1K/yr - $235.2K/yr,Error generating comment,https://www.linkedin.com/jobs/view/4323667251/
