@@ -198,75 +198,80 @@ def scrape_jobs(li_at_cookie: str) -> list[dict]:
 
         page = context.new_page()
         search_url = get_search_url()
-        print(f"Navigating to LinkedIn job search...")
+        print("Navigating to LinkedIn job search...")
         page.goto(search_url, wait_until="domcontentloaded")
         page.wait_for_timeout(5000)  # Wait for JS rendering
 
-        # Check if we're logged in by looking for job cards
-        job_cards = page.query_selector_all("[data-job-id]")
-        if not job_cards:
+        # Step 1: Collect all job IDs first (lightweight, no DOM mutation)
+        job_ids = page.eval_on_selector_all(
+            "[data-job-id]",
+            "els => els.map(el => el.getAttribute('data-job-id')).filter(Boolean)"
+        )
+
+        if not job_ids:
             print("WARNING: No job cards found. Cookie may be expired or page layout changed.")
-            # Take a debug screenshot
             page.screenshot(path="debug_screenshot.png")
             browser.close()
             return []
 
-        print(f"Found {len(job_cards)} job cards")
+        print(f"Found {len(job_ids)} job cards")
 
-        for i, card in enumerate(job_cards):
-            job_id = card.get_attribute("data-job-id")
-            if not job_id:
-                continue
-
-            # Extract basic info from card
-            title_el = card.query_selector('a[href*="/jobs/view/"]')
-            company_el = card.query_selector(".artdeco-entity-lockup__subtitle")
-            meta_items = card.query_selector_all("li")
-
-            # Extract title from the <strong> tag inside the link to avoid
-            # duplicated text (LinkedIn renders title in <strong> + a hidden
-            # <span class="visually-hidden"> with "with verification" suffix)
-            if title_el:
-                strong_el = title_el.query_selector("strong")
-                title = strong_el.inner_text().strip() if strong_el else title_el.inner_text().strip()
-            else:
-                title = "Unknown"
-
-            company = company_el.inner_text().strip() if company_el else "Unknown"
-            card_meta = [li.inner_text().strip() for li in meta_items]
-
-            # Extract location from first meta item
-            location = card_meta[0] if card_meta else "Unknown"
-
-            # Build job URL
+        # Step 2: For each job ID, re-locate the card in the DOM, extract info, click, get description
+        for i, job_id in enumerate(job_ids):
             job_url = f"https://www.linkedin.com/jobs/view/{job_id}/"
 
-            # Click the card to load full job description
-            print(f"  [{i+1}/{len(job_cards)}] Loading: {title} @ {company}")
             try:
+                # Re-query the card fresh each time (DOM may have re-rendered)
+                card = page.query_selector(f'[data-job-id="{job_id}"]')
+                if not card:
+                    print(f"  [{i+1}/{len(job_ids)}] Card not found for job {job_id}, skipping")
+                    continue
+
+                # Extract title from <strong> inside link
+                title_el = card.query_selector('a[href*="/jobs/view/"] strong')
+                title = title_el.inner_text().strip() if title_el else "Unknown"
+
+                # Extract company
+                company_el = card.query_selector(".artdeco-entity-lockup__subtitle")
+                company = company_el.inner_text().strip() if company_el else "Unknown"
+
+                # Extract card metadata (location, salary, etc.)
+                card_meta = card.eval_on_selector_all("li", "els => els.map(el => el.innerText.trim())")
+
+                location = card_meta[0] if card_meta else "Unknown"
+
+                print(f"  [{i+1}/{len(job_ids)}] Loading: {title} @ {company}")
+
+                # Click the card to load job description in the detail panel
                 card.click()
                 page.wait_for_timeout(random.randint(2000, 4000))
 
-                # Wait for description panel to load
+                # Wait for the detail panel to load
                 page.wait_for_selector("#job-details", timeout=10000)
 
                 # Extract full description
-                desc_el = page.query_selector("#job-details")
-                description = desc_el.inner_text().strip() if desc_el else ""
+                description = page.eval_on_selector(
+                    "#job-details", "el => el.innerText.trim()"
+                ) or ""
 
-                # Extract salary from top card badges
-                salary_from_detail = ""
-                badge_els = page.query_selector_all(
-                    ".job-details-jobs-unified-top-card__job-insight-view-model-secondary span"
-                )
-                for badge in badge_els:
-                    text = badge.inner_text().strip()
-                    if "$" in text and "/yr" in text.lower():
-                        salary_from_detail = text
-                        break
+                # Extract salary from detail panel badges
+                salary_from_detail = page.evaluate("""() => {
+                    const spans = document.querySelectorAll(
+                        '.job-details-jobs-unified-top-card__job-insight-view-model-secondary span'
+                    );
+                    for (const s of spans) {
+                        const t = s.innerText.trim();
+                        if (t.includes('$') && t.toLowerCase().includes('/yr')) return t;
+                    }
+                    return '';
+                }""")
 
             except Exception as e:
-                print(f"    Error loading description: {e}")
+                print(f"    Error processing job {job_id}: {e}")
+                title = title if 'title' in dir() else "Unknown"
+                company = company if 'company' in dir() else "Unknown"
+                location = location if 'location' in dir() else "Unknown"
+                card_meta = card_meta if 'card_meta' in dir() else []
                 description = ""
                 salary_from_detail = ""
 
@@ -292,7 +297,11 @@ def scrape_jobs(li_at_cookie: str) -> list[dict]:
 
         browser.close()
 
-    return jobs
+    # Filter out jobs with no title and no description (completely failed scrapes)
+    valid_jobs = [j for j in jobs if j["job_title"] != "Unknown" or j["description"]]
+    if len(valid_jobs) < len(jobs):
+        print(f"  Filtered out {len(jobs) - len(valid_jobs)} jobs with no data")
+    return valid_jobs
 
 
 def generate_comments(jobs: list[dict], api_key: str) -> list[dict]:
