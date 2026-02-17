@@ -87,31 +87,40 @@ SKILLS:
 - Analytics: Python, SQL, Looker, Tableau, Power BI, Retool
 """
 
-GEMINI_PROMPT_TEMPLATE = """You are a career advisor matching a candidate's resume against a job posting.
+GEMINI_BATCH_PROMPT_TEMPLATE = """You are a career advisor. Match the candidate's resume against each job posting below.
 
 === CANDIDATE RESUME ===
 {resume}
 
-=== JOB POSTING ===
-Job Title: {title}
-Company: {company}
-Job Description (excerpt):
-{description}
+=== JOB POSTINGS ===
+{jobs_block}
 
-=== TASK ===
-Evaluate how well this candidate matches this specific role. Consider:
-1. Does the candidate's experience level meet the job requirements?
-2. How relevant is the candidate's AI/enterprise product experience to this role?
-3. What are the candidate's strongest matching qualifications?
-4. What gaps or weaknesses might the candidate have for this role?
+=== INSTRUCTIONS ===
+For each job, evaluate whether the candidate's skills and experience meet the job's stated requirements.
+Focus ONLY on:
+- Does the candidate have the specific technical skills the job asks for?
+- Does the candidate have relevant domain experience the job requires?
+- Are there critical required skills/experiences the candidate is missing?
 
-Start your response with the match rating on its own line:
-Rating: High / Medium / Low
+Do NOT consider: whether the candidate is a student, work tenure length, or career gaps.
 
-Then provide a concise analysis (under 100 words) covering:
-- Why this is a good or bad match
-- Key strengths the candidate brings
-- Any notable gaps or concerns"""
+Return your response as a valid JSON array. Each element must have exactly these fields:
+- "job_id": the job ID string
+- "rating": exactly one of "High", "Medium", or "Low"
+- "bullets": an array of exactly 3 short strings (each under 20 words)
+
+The 3 bullets should cover:
+1. Key matching skill/experience
+2. Another matching or relevant qualification
+3. Main gap or missing requirement (or "No major gaps" if strong match)
+
+Example format:
+[
+  {{"job_id": "123", "rating": "High", "bullets": ["Has direct LLM fine-tuning experience matching the role", "Enterprise AI PM at Commure aligns with B2B focus", "No major gaps"]}},
+  {{"job_id": "456", "rating": "Low", "bullets": ["Python and SQL skills match", "No healthcare domain experience required by role", "Missing 5+ years of people management required"]}}
+]
+
+Return ONLY the JSON array, no other text."""
 
 
 def load_existing_job_ids() -> set:
@@ -287,28 +296,62 @@ def scrape_jobs(li_at_cookie: str) -> list[dict]:
 
 
 def generate_comments(jobs: list[dict], api_key: str) -> list[dict]:
-    """Use Gemini 2.5 Flash to generate enterprise AI fit comments."""
+    """Use Gemini 2.5 Flash to evaluate all jobs in a single batched request."""
     client = genai.Client(api_key=api_key)
 
+    # Build the jobs block for the prompt
+    jobs_block_parts = []
     for job in jobs:
-        prompt = GEMINI_PROMPT_TEMPLATE.format(
-            resume=CANDIDATE_RESUME,
-            title=job["job_title"],
-            company=job["company"],
-            description=job["description"],
+        jobs_block_parts.append(
+            f"[Job ID: {job['job_id']}]\n"
+            f"Title: {job['job_title']}\n"
+            f"Company: {job['company']}\n"
+            f"Description:\n{job['description'][:2000]}\n"
         )
-        try:
-            response = client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=prompt,
-            )
-            job["comment"] = response.text.strip()
-        except Exception as e:
-            print(f"  Gemini error for {job['job_title']}: {e}")
-            job["comment"] = "Error generating comment"
+    jobs_block = "\n---\n".join(jobs_block_parts)
 
-        # Rate limit: small delay between API calls
-        time.sleep(1)
+    prompt = GEMINI_BATCH_PROMPT_TEMPLATE.format(
+        resume=CANDIDATE_RESUME,
+        jobs_block=jobs_block,
+    )
+
+    print(f"  Sending 1 batched request for {len(jobs)} jobs...")
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+        )
+        raw_text = response.text.strip()
+
+        # Strip markdown code fences if present
+        if raw_text.startswith("```"):
+            raw_text = re.sub(r"^```(?:json)?\s*", "", raw_text)
+            raw_text = re.sub(r"\s*```$", "", raw_text)
+
+        results = json.loads(raw_text)
+        results_map = {r["job_id"]: r for r in results}
+
+        for job in jobs:
+            result = results_map.get(job["job_id"])
+            if result:
+                rating = result.get("rating", "Unknown")
+                bullets = result.get("bullets", [])
+                # Format as: "Rating: High\n- bullet1\n- bullet2\n- bullet3"
+                bullet_text = "\n".join(f"- {b}" for b in bullets)
+                job["comment"] = f"Rating: {rating}\n{bullet_text}"
+            else:
+                job["comment"] = "Rating: Unknown\n- No analysis returned"
+                print(f"  WARNING: No result for job {job['job_id']} ({job['job_title']})")
+
+    except json.JSONDecodeError as e:
+        print(f"  Gemini JSON parse error: {e}")
+        print(f"  Raw response: {raw_text[:500]}")
+        for job in jobs:
+            job["comment"] = "Error: failed to parse Gemini response"
+    except Exception as e:
+        print(f"  Gemini API error: {e}")
+        for job in jobs:
+            job["comment"] = "Error generating comment"
 
     return jobs
 
@@ -366,8 +409,9 @@ def generate_email_html(jobs: list[dict]) -> str:
     for job in jobs:
         rating = extract_rating(job["comment"])
         bg_color = rating_colors.get(rating, "#e2e3e5")
-        # Remove the "Rating: X" line from display comment
-        display_comment = re.sub(r"Rating:\s*(High|Medium|Low)\s*\n?", "", job["comment"], flags=re.IGNORECASE).strip()
+        # Extract bullet lines from comment (lines starting with "- ")
+        bullet_lines = [line.strip() for line in job["comment"].split("\n") if line.strip().startswith("- ")]
+        bullets_html = "".join(f"<li>{b[2:]}</li>" for b in bullet_lines)
 
         rows_html += f"""
         <tr>
@@ -380,7 +424,8 @@ def generate_email_html(jobs: list[dict]) -> str:
             <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">{job['experience_years']}</td>
             <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">{job['salary']}</td>
             <td style="padding: 10px; border: 1px solid #ddd; background-color: {bg_color};">
-                <strong>[{rating}]</strong> {display_comment}
+                <strong>[{rating}]</strong>
+                <ul style="margin: 4px 0; padding-left: 18px; font-size: 13px;">{bullets_html}</ul>
             </td>
         </tr>"""
 
