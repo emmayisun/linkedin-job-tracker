@@ -199,8 +199,25 @@ def scrape_jobs(li_at_cookie: str) -> list[dict]:
         page = context.new_page()
         search_url = get_search_url()
         print("Navigating to LinkedIn job search...")
-        page.goto(search_url, wait_until="domcontentloaded")
+        try:
+            page.goto(search_url, wait_until="domcontentloaded", timeout=30000)
+        except Exception as e:
+            error_msg = str(e)
+            if "ERR_TOO_MANY_REDIRECTS" in error_msg:
+                print("ERROR: LinkedIn cookie (li_at) has expired — too many redirects.")
+                print("ACTION REQUIRED: Update the LI_AT_COOKIE secret in GitHub repo settings.")
+            else:
+                print(f"ERROR: Failed to load LinkedIn: {error_msg[:200]}")
+            browser.close()
+            return []
         page.wait_for_timeout(5000)  # Wait for JS rendering
+
+        # Check if redirected to login page (another sign of expired cookie)
+        if "/login" in page.url or "/authwall" in page.url:
+            print("ERROR: Redirected to login page — LinkedIn cookie (li_at) has expired.")
+            print("ACTION REQUIRED: Update the LI_AT_COOKIE secret in GitHub repo settings.")
+            browser.close()
+            return []
 
         # Step 1: Collect all job IDs first (lightweight, no DOM mutation)
         job_ids = page.eval_on_selector_all(
