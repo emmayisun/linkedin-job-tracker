@@ -174,17 +174,31 @@ def scrape_jobs(li_at_cookie: str) -> list[dict]:
     jobs = []
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        # Launch with args that make headless Chrome look more like a real browser
+        browser = p.chromium.launch(
+            headless=True,
+            args=[
+                "--disable-blink-features=AutomationControlled",
+                "--disable-features=IsolateOrigins,site-per-process",
+            ],
+        )
         context = browser.new_context(
             viewport={"width": 1920, "height": 1080},
             user_agent=(
                 "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
                 "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/131.0.0.0 Safari/537.36"
+                "Chrome/133.0.0.0 Safari/537.36"
             ),
+            locale="en-US",
+            timezone_id="America/Los_Angeles",
         )
 
-        # Set LinkedIn auth cookie
+        # Remove the navigator.webdriver flag that exposes automation
+        context.add_init_script("""
+            Object.defineProperty(navigator, 'webdriver', { get: () => false });
+        """)
+
+        # Set LinkedIn cookies — li_at plus supporting cookies to look more legitimate
         context.add_cookies(
             [
                 {
@@ -192,7 +206,19 @@ def scrape_jobs(li_at_cookie: str) -> list[dict]:
                     "value": li_at_cookie,
                     "domain": ".linkedin.com",
                     "path": "/",
-                }
+                },
+                {
+                    "name": "lang",
+                    "value": "v=2&lang=en-us",
+                    "domain": ".linkedin.com",
+                    "path": "/",
+                },
+                {
+                    "name": "JSESSIONID",
+                    "value": f'"ajax:{random.randint(1000000000, 9999999999)}"',
+                    "domain": ".linkedin.com",
+                    "path": "/",
+                },
             ]
         )
 
