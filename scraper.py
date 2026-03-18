@@ -29,9 +29,9 @@ def get_search_url() -> str:
         time_filter = "r32400"
         print("Morning catch-up mode: looking back 9 hours")
     else:
-        # Normal hourly run: 1 hour = 3600 seconds
-        time_filter = "r3600"
-        print("Hourly mode: looking back 1 hour")
+        # Every 3 hours: 3 hours = 10800 seconds
+        time_filter = "r10800"
+        print("Regular mode: looking back 3 hours")
 
     return (
         "https://www.linkedin.com/jobs/search/"
@@ -232,6 +232,7 @@ def scrape_jobs(li_at_cookie: str) -> list[dict]:
             if "ERR_TOO_MANY_REDIRECTS" in error_msg:
                 print("ERROR: LinkedIn cookie (li_at) has expired — too many redirects.")
                 print("ACTION REQUIRED: Update the LI_AT_COOKIE secret in GitHub repo settings.")
+                Path(Path(__file__).parent / "cookie_expired.txt").write_text("true")
             else:
                 print(f"ERROR: Failed to load LinkedIn: {error_msg[:200]}")
             browser.close()
@@ -242,6 +243,7 @@ def scrape_jobs(li_at_cookie: str) -> list[dict]:
         if "/login" in page.url or "/authwall" in page.url:
             print("ERROR: Redirected to login page — LinkedIn cookie (li_at) has expired.")
             print("ACTION REQUIRED: Update the LI_AT_COOKIE secret in GitHub repo settings.")
+            Path(Path(__file__).parent / "cookie_expired.txt").write_text("true")
             browser.close()
             return []
 
@@ -487,7 +489,7 @@ def generate_email_html(jobs: list[dict]) -> str:
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px;">
 
 <h2 style="color: #333;">LinkedIn PM Job Alert</h2>
-<p style="color: #666;">Scan time: {timestamp} | Region: San Francisco Bay Area | Filter: Past 1 hour</p>
+<p style="color: #666;">Scan time: {timestamp} | Region: San Francisco Bay Area | Filter: Past 3 hours</p>
 <p style="color: #666;">Found <strong>{len(jobs)}</strong> new job(s)</p>
 
 {f'''<table style="width: 100%; border-collapse: collapse; font-size: 14px;">
@@ -546,6 +548,7 @@ def main():
         email_html = generate_email_html([])
         EMAIL_HTML_FILE.write_text(email_html, encoding="utf-8")
         Path(Path(__file__).parent / "has_new_jobs.txt").write_text("false")
+        Path(Path(__file__).parent / "cookie_expired.txt").write_text("false")
         print("Done — nothing to report.")
         return
 
@@ -563,8 +566,9 @@ def main():
     EMAIL_HTML_FILE.write_text(email_html, encoding="utf-8")
     print(f"Email HTML written to {EMAIL_HTML_FILE}")
 
-    # Write flag for workflow
+    # Write flags for workflow
     Path(Path(__file__).parent / "has_new_jobs.txt").write_text("true")
+    Path(Path(__file__).parent / "cookie_expired.txt").write_text("false")
 
     # Summary
     print("\n--- Summary ---")

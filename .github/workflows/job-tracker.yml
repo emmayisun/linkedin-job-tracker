@@ -2,9 +2,9 @@ name: LinkedIn Job Tracker
 
 on:
   schedule:
-    # PST 7am-9pm = UTC 15:00-05:00 (hourly)
-    - cron: '0 15,16,17,18,19,20,21,22,23 * * *'
-    - cron: '0 0,1,2,3,4,5 * * *'
+    # PST 7am-9pm = UTC 15:00-05:00 (every 3 hours)
+    - cron: '0 15,18,21 * * *'
+    - cron: '0 0,3 * * *'
     # PST 6am = UTC 14:00 (morning catch-up for overnight jobs)
     - cron: '0 14 * * *'
   workflow_dispatch:
@@ -60,6 +60,11 @@ jobs:
           else
             echo "has_new=false" >> $GITHUB_OUTPUT
           fi
+          if [ -f cookie_expired.txt ] && [ "$(cat cookie_expired.txt)" = "true" ]; then
+            echo "cookie_expired=true" >> $GITHUB_OUTPUT
+          else
+            echo "cookie_expired=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Send email notification
         if: steps.check.outputs.has_new == 'true'
@@ -75,10 +80,33 @@ jobs:
           html_body: file://email_body.html
           content_type: text/html
 
+      - name: Send cookie expired alert
+        if: steps.check.outputs.cookie_expired == 'true'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.EMAIL_ADDRESS }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "⚠️ LinkedIn Job Tracker — Cookie Expired"
+          to: ${{ secrets.EMAIL_ADDRESS }}
+          from: LinkedIn Job Tracker <${{ secrets.EMAIL_ADDRESS }}>
+          body: |
+            Your LinkedIn li_at cookie has expired. The job tracker cannot scrape new listings until you update it.
+
+            Steps to fix:
+            1. Log in to LinkedIn in your browser
+            2. Open DevTools → Application → Cookies → linkedin.com
+            3. Copy the li_at cookie value
+            4. Go to https://github.com/emmayisun/linkedin-job-tracker/settings/secrets/actions
+            5. Update the LI_AT_COOKIE secret
+
       - name: Summary
         run: |
-          if [ "${{ steps.check.outputs.has_new }}" = "true" ]; then
+          if [ "${{ steps.check.outputs.cookie_expired }}" = "true" ]; then
+            echo "⚠️ Cookie expired — alert email sent."
+          elif [ "${{ steps.check.outputs.has_new }}" = "true" ]; then
             echo "✅ New jobs found and email sent!"
           else
-            echo "ℹ️ No new jobs in the past hour."
+            echo "ℹ️ No new jobs this run."
           fi
